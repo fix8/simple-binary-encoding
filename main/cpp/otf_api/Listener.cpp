@@ -24,16 +24,20 @@
  * builtins for GCC. MSVC has similar ones.
  */
 
-#if defined(WIN32)
+// Some GCC versions do not include __builtin_bswap16
+// The compiler optimizes the code below into a single ROL instruction so the intrinsic is not really needed
+#define BYTESWAP16(v) (((v) >> 8) | ((v) << 8))
+
+#if defined(WIN32) || defined(_WIN32)
     #define BSWAP16(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : _byteswap_ushort((::uint16_t)v))
     #define BSWAP32(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : _byteswap_ulong((::uint32_t)v))
     #define BSWAP64(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : _byteswap_uint64((::uint64_t)v))
 #elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    #define BSWAP16(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : __builtin_bswap16((::uint16_t)v))
+    #define BSWAP16(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : BYTESWAP16((::uint16_t)v))
     #define BSWAP32(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : __builtin_bswap32((::uint32_t)v))
     #define BSWAP64(b,v) ((b == Ir::SBE_LITTLE_ENDIAN) ? (v) : __builtin_bswap64((::uint64_t)v))
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    #define BSWAP16(b,v) ((b == Ir::SBE_BIG_ENDIAN) ? (v) : __builtin_bswap16((::uint16_t)v))
+    #define BSWAP16(b,v) ((b == Ir::SBE_BIG_ENDIAN) ? (v) : BYTESWAP16((::uint16_t)v))
     #define BSWAP32(b,v) ((b == Ir::SBE_BIG_ENDIAN) ? (v) : __builtin_bswap32((::uint32_t)v))
     #define BSWAP64(b,v) ((b == Ir::SBE_BIG_ENDIAN) ? (v) : __builtin_bswap64((::uint64_t)v))
 #else
@@ -44,11 +48,11 @@ using namespace sbe::on_the_fly;
 using ::std::cout;
 using ::std::endl;
 
-#if !defined(WIN32)
+#if defined(WIN32) || defined(_WIN32)
+#define snprintf _snprintf
+#else
 const ::int32_t Field::INVALID_ID;
 const int Field::FIELD_INDEX;
-#else
-#define snprintf _snprintf
 #endif /* WIN32 */
 
 Listener::Listener() : onNext_(NULL), onError_(NULL), onCompleted_(NULL),
@@ -69,6 +73,7 @@ Listener &Listener::resetForDecode(const char *data, const int length)
     bufferOffset_ = 0;
     templateId_ = Ir::INVALID_ID;
     templateVersion_ = -1;
+    messageBlockLength_ = -1;
     while (!stack_.empty())
     {
         stack_.pop();
@@ -111,14 +116,14 @@ int Listener::subscribe(OnNext *onNext,
                 {
                     char message[1024];
 
-                    ::snprintf(message, sizeof(message)-1, "no IR found for message with templateId=%ld and version=%ld", templateId_, templateVersion_);
+                    ::snprintf(message, sizeof(message)-1, "no IR found for message with templateId=%ld and version=%ld [E117]", templateId_, templateVersion_);
                     onError_->onError(Error(message));
                     result = -1;
                 }
             }
             else if (onError_ != NULL)
             {
-                onError_->onError(Error("template ID and/or version not found in header"));
+                onError_->onError(Error("template ID and/or version not found in header [E118]"));
                 result = -1;
             }
         }
@@ -136,11 +141,11 @@ inline void Listener::updateBufferOffsetFromIr(const Ir *ir)
         newOffset += ir->offset();
     }
 
-    //cout << "updating offset " << relativeOffsetAnchor_ << " + " << ir->offset() << " = " << newOffset << " or " << bufferOffset_;
+    // cout << "updating offset " << relativeOffsetAnchor_ << " + " << ir->offset() << " = " << newOffset << " or " << bufferOffset_;
 
     // take the max of the bufferOffset_ and the newOffset
     bufferOffset_ = (bufferOffset_ > newOffset) ? bufferOffset_ : newOffset;
-    //cout << " = bufferOffset = " << bufferOffset_ << endl;
+    // cout << " = bufferOffset = " << bufferOffset_ << endl;
 }
 
 // protected
@@ -154,8 +159,8 @@ int Listener::process(void)
     // layer to coalesce for higher up
     for (; !ir->end(); ir->next())
     {
-        //cout << "IR @ " << ir->position() << " " << ir->signal() << endl;
-        //cout << "offsets " << bufferOffset_ << "/" << bufferLen_ << endl;
+        // cout << "IR @ " << ir->position() << " " << ir->signal() << endl;
+        // cout << "offsets " << bufferOffset_ << "/" << bufferLen_ << endl;
         if (bufferOffset_ > bufferLen_)
         {
             if (onError_ != NULL)
@@ -370,11 +375,14 @@ void Listener::processBeginMessage(const Ir *ir)
 {
     stack_.top().scopeName_ = ir->name();
     relativeOffsetAnchor_ = bufferOffset_;
+    messageBlockLength_ = ir->size();
+    // cout << "message blockLength " << messageBlockLength_ << endl;
 }
 
 void Listener::processEndMessage(void)
 {
     stack_.top().scopeName_ = "";
+    messageBlockLength_ = -1;
 }
 
 void Listener::processBeginComposite(const Ir *ir)

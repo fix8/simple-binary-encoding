@@ -17,16 +17,22 @@ package uk.co.real_logic.sbe.examples;
 
 import baseline.Car;
 import baseline.MessageHeader;
-import uk.co.real_logic.sbe.codec.java.DirectBuffer;
-import uk.co.real_logic.sbe.ir.*;
-import uk.co.real_logic.sbe.otf.OtfMessageDecoder;
+import uk.co.real_logic.agrona.concurrent.UnsafeBuffer;
+import uk.co.real_logic.sbe.ir.Ir;
+import uk.co.real_logic.sbe.ir.IrDecoder;
+import uk.co.real_logic.sbe.ir.IrEncoder;
+import uk.co.real_logic.sbe.ir.Token;
 import uk.co.real_logic.sbe.otf.OtfHeaderDecoder;
+import uk.co.real_logic.sbe.otf.OtfMessageDecoder;
 import uk.co.real_logic.sbe.xml.IrGenerator;
 import uk.co.real_logic.sbe.xml.MessageSchema;
+import uk.co.real_logic.sbe.xml.ParserOptions;
 import uk.co.real_logic.sbe.xml.XmlSchemaParser;
 
-import java.io.*;
-
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -58,7 +64,7 @@ public class OtfExample
 
         // Now we have IR we can read the message header
         int bufferOffset = 0;
-        final DirectBuffer buffer = new DirectBuffer(encodedMsgBuffer);
+        final UnsafeBuffer buffer = new UnsafeBuffer(encodedMsgBuffer);
 
         final int templateId = headerDecoder.getTemplateId(buffer, bufferOffset);
         final int schemaId = headerDecoder.getSchemaId(buffer, bufferOffset);
@@ -72,12 +78,13 @@ public class OtfExample
 
         final List<Token> msgTokens = ir.getMessage(templateId);
 
-        bufferOffset = OtfMessageDecoder.decode(buffer,
-                                                bufferOffset,
-                                                actingVersion,
-                                                blockLength,
-                                                msgTokens,
-                                                new ExampleTokenListener(new PrintWriter(System.out, true)));
+        bufferOffset = OtfMessageDecoder.decode(
+            buffer,
+            bufferOffset,
+            actingVersion,
+            blockLength,
+            msgTokens,
+            new ExampleTokenListener(new PrintWriter(System.out, true)));
 
         if (bufferOffset != encodedMsgBuffer.position())
         {
@@ -90,15 +97,18 @@ public class OtfExample
     {
         try (final InputStream in = new FileInputStream("examples/resources/example-schema.xml"))
         {
-            final MessageSchema schema = XmlSchemaParser.parse(in);
+            final MessageSchema schema = XmlSchemaParser.parse(in, ParserOptions.DEFAULT);
             final Ir ir = new IrGenerator().generate(schema);
-            new IrEncoder(buffer, ir).encode();
+            try (final IrEncoder irEncoder = new IrEncoder(buffer, ir))
+            {
+                irEncoder.encode();
+            }
         }
     }
 
     private static void encodeTestMessage(final ByteBuffer buffer)
     {
-        final DirectBuffer directBuffer = new DirectBuffer(buffer);
+        final UnsafeBuffer directBuffer = new UnsafeBuffer(buffer);
 
         int bufferOffset = 0;
         MESSAGE_HEADER.wrap(directBuffer, bufferOffset, ACTING_VERSION)
@@ -117,7 +127,9 @@ public class OtfExample
     private static Ir decodeIr(final ByteBuffer buffer)
         throws IOException
     {
-        final IrDecoder irDecoder = new IrDecoder(buffer);
-        return irDecoder.decode();
+        try (final IrDecoder irDecoder = new IrDecoder(buffer))
+        {
+            return irDecoder.decode();
+        }
     }
 }

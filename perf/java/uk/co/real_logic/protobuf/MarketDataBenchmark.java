@@ -15,9 +15,10 @@
  */
 package uk.co.real_logic.protobuf;
 
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+
 import uk.co.real_logic.protobuf.fix.Fix;
 
 public class MarketDataBenchmark
@@ -39,13 +40,13 @@ public class MarketDataBenchmark
         }
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public byte[] testEncode(final MyState state) throws Exception
     {
         return encode();
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Fix.MarketDataIncrementalRefreshTrades testDecode(final MyState state) throws Exception
     {
         final byte[] buffer = state.decodeBuffer;
@@ -55,8 +56,7 @@ public class MarketDataBenchmark
 
     private static byte[] encode() throws Exception
     {
-        final Fix.MarketDataIncrementalRefreshTrades.Builder marketData
-            = Fix.MarketDataIncrementalRefreshTrades.newBuilder();
+        final Fix.MarketDataIncrementalRefreshTrades.Builder marketData = Fix.MarketDataIncrementalRefreshTrades.newBuilder();
 
         marketData.clear()
                   .setTransactTime(1234L)
@@ -92,14 +92,13 @@ public class MarketDataBenchmark
 
     private static Fix.MarketDataIncrementalRefreshTrades decode(final byte[] buffer) throws Exception
     {
-        final Fix.MarketDataIncrementalRefreshTrades marketData
-            = Fix.MarketDataIncrementalRefreshTrades.parseFrom(buffer);
+        final Fix.MarketDataIncrementalRefreshTrades marketData = Fix.MarketDataIncrementalRefreshTrades.parseFrom(buffer);
 
         marketData.getTransactTime();
         marketData.getEventTimeDelta();
         marketData.getMatchEventIndicator();
 
-        for (final Fix.MdIncGrp  mdIncGrp : marketData.getMdIncGroupList())
+        for (final Fix.MdIncGrp mdIncGrp : marketData.getMdIncGroupList())
         {
             mdIncGrp.getTradeId();
             mdIncGrp.getSecurityId();
@@ -143,11 +142,12 @@ public class MarketDataBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(marketData.length));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(marketData.length));
     }
 
     private static void perfTestDecode(final int runNumber) throws Exception
@@ -165,10 +165,11 @@ public class MarketDataBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(marketData.getMdIncGroupCount()));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(marketData.getMdIncGroupCount()));
     }
 }

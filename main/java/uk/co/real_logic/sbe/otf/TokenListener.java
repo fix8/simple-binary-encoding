@@ -15,7 +15,7 @@
  */
 package uk.co.real_logic.sbe.otf;
 
-import uk.co.real_logic.sbe.codec.java.DirectBuffer;
+import uk.co.real_logic.agrona.DirectBuffer;
 import uk.co.real_logic.sbe.ir.Token;
 
 import java.util.List;
@@ -65,10 +65,14 @@ public interface TokenListener
      * @param toIndex at which the enum metadata ends.
      * @param actingVersion of the encoded message for determining validity of extension fields.
      */
-    void onEnum(Token fieldToken,
-                DirectBuffer buffer, int bufferIndex,
-                List<Token> tokens, int fromIndex, int toIndex,
-                int actingVersion);
+    void onEnum(
+        Token fieldToken,
+        DirectBuffer buffer,
+        int bufferIndex,
+        List<Token> tokens,
+        int fromIndex,
+        int toIndex,
+        int actingVersion);
 
     /**
      * BitSet encoded type encountered.
@@ -81,10 +85,14 @@ public interface TokenListener
      * @param toIndex at which the bit set metadata ends.
      * @param actingVersion of the encoded message for determining validity of extension fields.
      */
-    void onBitSet(Token fieldToken,
-                  DirectBuffer buffer, int bufferIndex,
-                  List<Token> tokens, int fromIndex, int toIndex,
-                  int actingVersion);
+    void onBitSet(
+        Token fieldToken,
+        DirectBuffer buffer,
+        int bufferIndex,
+        List<Token> tokens,
+        int fromIndex,
+        int toIndex,
+        int actingVersion);
 
     /**
      * Beginning of Composite encoded type encountered.
@@ -105,6 +113,14 @@ public interface TokenListener
      * @param toIndex at which the composite metadata ends.
      */
     void onEndComposite(Token fieldToken, List<Token> tokens, int fromIndex, int toIndex);
+
+    /**
+     * Group encountered.
+     *
+     * @param token describing the group.
+     * @param numInGroup number of times the group will be repeated.
+     */
+    void onGroupHeader(Token token, int numInGroup);
 
     /**
      * Beginning of group encoded type encountered.

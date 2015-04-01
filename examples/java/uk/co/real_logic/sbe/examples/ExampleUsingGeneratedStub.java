@@ -15,8 +15,15 @@
  */
 package uk.co.real_logic.sbe.examples;
 
-import baseline.*;
-import uk.co.real_logic.sbe.codec.java.DirectBuffer;
+import baseline.Car;
+import baseline.Engine;
+import baseline.BooleanType;
+import baseline.Model;
+import baseline.OptionalExtras;
+import baseline.MetaAttribute;
+import baseline.MessageHeader;
+
+import uk.co.real_logic.agrona.concurrent.UnsafeBuffer;
 
 import java.io.FileOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -49,12 +56,12 @@ public class ExampleUsingGeneratedStub
         }
     }
 
-    public static void main(final String[] args)throws Exception
+    public static void main(final String[] args) throws Exception
     {
         System.out.println("\n*** Basic Stub Example ***");
 
         final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4096);
-        final DirectBuffer directBuffer = new DirectBuffer(byteBuffer);
+        final UnsafeBuffer directBuffer = new UnsafeBuffer(byteBuffer);
         final short messageTemplateVersion = 0;
         int bufferOffset = 0;
         int encodingLength = 0;
@@ -103,7 +110,7 @@ public class ExampleUsingGeneratedStub
         decode(CAR, directBuffer, bufferOffset, actingBlockLength, schemaId, actingVersion);
     }
 
-    public static int encode(final Car car, final DirectBuffer directBuffer, final int bufferOffset)
+    public static int encode(final Car car, final UnsafeBuffer directBuffer, final int bufferOffset)
     {
         final int srcOffset = 0;
 
@@ -119,41 +126,49 @@ public class ExampleUsingGeneratedStub
             car.someNumbers(i, i);
         }
 
-        car.extras().clear()
-                    .cruiseControl(true)
-                    .sportsPack(true)
-                    .sunRoof(false);
+        car.extras()
+           .clear()
+           .cruiseControl(true)
+           .sportsPack(true)
+           .sunRoof(false);
 
-        car.engine().capacity(2000)
-                    .numCylinders((short)4)
-                    .putManufacturerCode(MANUFACTURER_CODE, srcOffset);
+        car.engine()
+           .capacity(2000)
+           .numCylinders((short)4)
+           .putManufacturerCode(MANUFACTURER_CODE, srcOffset);
 
-        car.fuelFiguresCount(3).next().speed(30).mpg(35.9f)
-                               .next().speed(55).mpg(49.0f)
-                               .next().speed(75).mpg(40.0f);
+        car.fuelFiguresCount(3)
+           .next().speed(30).mpg(35.9f)
+           .next().speed(55).mpg(49.0f)
+           .next().speed(75).mpg(40.0f);
 
         final Car.PerformanceFigures perfFigures = car.performanceFiguresCount(2);
-        perfFigures.next().octaneRating((short)95)
-                          .accelerationCount(3).next().mph(30).seconds(4.0f)
-                                               .next().mph(60).seconds(7.5f)
-                                               .next().mph(100).seconds(12.2f);
-        perfFigures.next().octaneRating((short)99)
-                          .accelerationCount(3).next().mph(30).seconds(3.8f)
-                                               .next().mph(60).seconds(7.1f)
-                                               .next().mph(100).seconds(11.8f);
+        perfFigures.next()
+                   .octaneRating((short)95)
+                   .accelerationCount(3)
+                   .next().mph(30).seconds(4.0f)
+                   .next().mph(60).seconds(7.5f)
+                   .next().mph(100).seconds(12.2f);
+        perfFigures.next()
+                   .octaneRating((short)99)
+                   .accelerationCount(3)
+                   .next().mph(30).seconds(3.8f)
+                   .next().mph(60).seconds(7.1f)
+                   .next().mph(100).seconds(11.8f);
 
-        car.putMake(MAKE, srcOffset, MAKE.length);
+        car.make(new String(MAKE));
         car.putModel(MODEL, srcOffset, MODEL.length);
 
         return car.size();
     }
 
-    public static void decode(final Car car,
-                              final DirectBuffer directBuffer,
-                              final int bufferOffset,
-                              final int actingBlockLength,
-                              final int schemaId,
-                              final int actingVersion)
+    public static void decode(
+        final Car car,
+        final UnsafeBuffer directBuffer,
+        final int bufferOffset,
+        final int actingBlockLength,
+        final int schemaId,
+        final int actingVersion)
         throws Exception
     {
         final byte[] buffer = new byte[128];
@@ -216,9 +231,10 @@ public class ExampleUsingGeneratedStub
         }
 
         sb.append("\ncar.make.semanticType=").append(Car.makeMetaAttribute(MetaAttribute.SEMANTIC_TYPE));
-        sb.append("\ncar.make=").append(new String(buffer, 0, car.getMake(buffer, 0, buffer.length), Car.makeCharacterEncoding()));
+        sb.append("\ncar.make=").append(car.make());
 
-        sb.append("\ncar.model=").append(new String(buffer, 0, car.getModel(buffer, 0, buffer.length), Car.modelCharacterEncoding()));
+        sb.append("\ncar.model=").append(
+            new String(buffer, 0, car.getModel(buffer, 0, buffer.length), Car.modelCharacterEncoding()));
 
         sb.append("\ncar.size=").append(car.size());
 

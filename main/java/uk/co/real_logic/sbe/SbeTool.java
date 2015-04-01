@@ -23,6 +23,7 @@ import uk.co.real_logic.sbe.ir.IrDecoder;
 import uk.co.real_logic.sbe.ir.IrEncoder;
 import uk.co.real_logic.sbe.xml.IrGenerator;
 import uk.co.real_logic.sbe.xml.MessageSchema;
+import uk.co.real_logic.sbe.xml.ParserOptions;
 import uk.co.real_logic.sbe.xml.XmlSchemaParser;
 
 import java.io.BufferedInputStream;
@@ -41,44 +42,67 @@ import java.io.FileInputStream;
  *
  * Properties
  * <ul>
- *     <li><code>sbe.validation.xsd</code>: Use XSD to validate or not.</li>
- *     <li><code>sbe.validation.stop.on.error</code>: Should the parser stop on first error encountered? Defaults to false.</li>
- *     <li><code>sbe.validation.warnings.fatal</code>: Are warnings in parsing considered fatal? Defaults to false.</li>
- *     <li><code>sbe.validation.suppress.output</code>: Should the parser suppress output during validation? Defaults to false.</li>
- *     <li><code>sbe.generate.stubs</code>: Generate stubs or not. Defaults to true.</li>
- *     <li><code>sbe.generate.ir</code>: Generate IR or not. Defaults to false.</li>
- *     <li><code>sbe.target.language</code>: Target language for code generation, defaults to Java.</li>
- *     <li><code>sbe.output.dir</code>: Target directory for code generation, defaults to current directory.</li>
+ * <li><code>sbe.validation.xsd</code>: Use XSD to validate or not.</li>
+ * <li><code>sbe.validation.stop.on.error</code>: Should the parser stop on first error encountered? Defaults to false.</li>
+ * <li><code>sbe.validation.warnings.fatal</code>: Are warnings in parsing considered fatal? Defaults to false.</li>
+ * <li><code>sbe.validation.suppress.output</code>: Should the parser suppress output during validation? Defaults to false.</li>
+ * <li><code>sbe.generate.stubs</code>: Generate stubs or not. Defaults to true.</li>
+ * <li><code>sbe.generate.ir</code>: Generate IR or not. Defaults to false.</li>
+ * <li><code>sbe.target.language</code>: Target language for code generation, defaults to Java.</li>
+ * <li><code>sbe.output.dir</code>: Target directory for code generation, defaults to current directory.</li>
  * </ul>
  */
 public class SbeTool
 {
-    /** Boolean system property to control throwing exceptions on all errors */
+    /**
+     * Boolean system property to control throwing exceptions on all errors
+     */
     public static final String VALIDATION_STOP_ON_ERROR = "sbe.validation.stop.on.error";
 
-    /** Boolean system property to control whether to consider warnings fatal and treat them as errors */
+    /**
+     * Boolean system property to control whether to consider warnings fatal and treat them as errors
+     */
     public static final String VALIDATION_WARNINGS_FATAL = "sbe.validation.warnings.fatal";
 
-    /** System property to hold XSD to validate message specification against */
+    /**
+     * System property to hold XSD to validate message specification against
+     */
     public static final String VALIDATION_XSD = "sbe.validation.xsd";
 
-    /** Boolean system property to control suppressing output on all errors and warnings */
+    /**
+     * Boolean system property to control suppressing output on all errors and warnings
+     */
     public static final String VALIDATION_SUPPRESS_OUTPUT = "sbe.validation.suppress.output";
 
-    /** Boolean system property to turn on or off generation of stubs. Defaults to true. */
+    /**
+     * Boolean system property to turn on or off generation of stubs. Defaults to true.
+     */
     public static final String GENERATE_STUBS = "sbe.generate.stubs";
 
-    /** Boolean system property to turn on or off generation of IR. Defaults to false. */
+    /**
+     * Boolean system property to turn on or off generation of IR. Defaults to false.
+     */
     public static final String GENERATE_IR = "sbe.generate.ir";
 
-    /** Target language for generated code. */
+    /**
+     * Target language for generated code.
+     */
     public static final String TARGET_LANGUAGE = "sbe.target.language";
 
-    /** Output directory for generated code */
+    /**
+     * Output directory for generated code
+     */
     public static final String OUTPUT_DIR = "sbe.output.dir";
 
-    /** String system property of the namespace for generated code. */
+    /**
+     * String system property of the namespace for generated code.
+     */
     public static final String TARGET_NAMESPACE = "sbe.target.namespace";
+
+    /**
+     * Specifies the name of the Java buffer to wrap
+     */
+    public static final String JAVA_BUFFER = "sbe.java.buffer";
 
     /**
      * Main entry point for the SBE Tool.
@@ -99,6 +123,12 @@ public class SbeTool
             final Ir ir;
             if (fileName.endsWith(".xml"))
             {
+                final String xsdFilename = System.getProperty(SbeTool.VALIDATION_XSD);
+                if (xsdFilename != null)
+                {
+                    validateAgainstSchema(fileName, xsdFilename);
+                }
+
                 ir = new IrGenerator().generate(parseSchema(fileName), System.getProperty(TARGET_NAMESPACE));
             }
             else if (fileName.endsWith(".sbeir"))
@@ -140,25 +170,49 @@ public class SbeTool
     }
 
     /**
+     * Validate the SBE Schema against the XSD.
+     *
+     * @param sbeSchemaFilename to be validated
+     * @param xsdFilename       XSD against which to validate
+     * @throws Exception if an error occurs while validating
+     */
+    public static void validateAgainstSchema(final String sbeSchemaFilename, final String xsdFilename)
+        throws Exception
+    {
+        try (final BufferedInputStream in = new BufferedInputStream(new FileInputStream(sbeSchemaFilename)))
+        {
+            XmlSchemaParser.validate(xsdFilename, in);
+        }
+    }
+
+    /**
      * Parse the message schema specification.
      *
-     * @param messageSchemaFileName file containing the SBE specification for the
+     * @param sbeSchemaFilename file containing the SBE specification for the
      * @return the parsed {@link MessageSchema} for the specification found in the file.
      * @throws Exception if an error occurs when parsing the specification.
      */
-    public static MessageSchema parseSchema(final String messageSchemaFileName) throws Exception
+    public static MessageSchema parseSchema(final String sbeSchemaFilename)
+        throws Exception
     {
-        try (final BufferedInputStream in = new BufferedInputStream(new FileInputStream(messageSchemaFileName)))
+        final ParserOptions.Builder optionsBuilder =
+            ParserOptions.builder()
+                         .xsdFilename(System.getProperty(SbeTool.VALIDATION_XSD))
+                         .stopOnError(Boolean.parseBoolean(System.getProperty(SbeTool.VALIDATION_STOP_ON_ERROR)))
+                         .warningsFatal(Boolean.parseBoolean(System.getProperty(SbeTool.VALIDATION_WARNINGS_FATAL)))
+                         .suppressOutput(Boolean.parseBoolean(System.getProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT)));
+
+        try (final BufferedInputStream in = new BufferedInputStream(new FileInputStream(sbeSchemaFilename)))
         {
-            return XmlSchemaParser.parse(in);
+            return XmlSchemaParser.parse(in, optionsBuilder.build());
         }
     }
 
     /**
      * Generate SBE encoding and decoding stubs for a target language.
      *
-     * @param ir for the parsed specification.
-     * @param outputDirName directory into which code will be generated.
+     * @param ir             for the parsed specification.
+     * @param outputDirName  directory into which code will be generated.
      * @param targetLanguage for the generated code.
      * @throws Exception if an error occurs while generating the code.
      */

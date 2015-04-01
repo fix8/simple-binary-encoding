@@ -16,7 +16,7 @@
 #ifndef _IR_COLLECTION_H_
 #define _IR_COLLECTION_H_
 
-#if defined(WIN32)
+#if defined(WIN32) || defined(_WIN32)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <io.h>
@@ -262,6 +262,12 @@ protected:
 
         std::cout << " length " << size << std::endl;
 
+        if (header_ != NULL)
+        {
+            delete header_;
+            header_ = NULL;
+        }
+        
         header_ = new Ir(buffer_ + offset, size, -1, -1, -1);
 
         return size;

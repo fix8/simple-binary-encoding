@@ -16,7 +16,7 @@
 
 package uk.co.real_logic.sbe;
 
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import uk.co.real_logic.sbe.examples.*;
@@ -63,7 +63,7 @@ public class CarBenchmark
         }
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public int testEncode(final MyState state)
     {
         final Car car = state.car;
@@ -76,7 +76,7 @@ public class CarBenchmark
         return car.size();
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public int testDecode(final MyState state)
     {
         final Car car = state.car;
@@ -90,10 +90,7 @@ public class CarBenchmark
         return car.size();
     }
 
-    public static void encode(final MessageHeader messageHeader,
-                              final Car car,
-                              final DirectBuffer buffer,
-                              final int bufferIndex)
+    public static void encode(final MessageHeader messageHeader, final Car car, final DirectBuffer buffer, final int bufferIndex)
     {
         messageHeader.wrap(buffer, bufferIndex, 0)
                      .blockLength(car.sbeBlockLength())
@@ -140,11 +137,12 @@ public class CarBenchmark
     }
 
 
-    private static void decode(final MessageHeader messageHeader,
-                               final Car car,
-                               final DirectBuffer buffer,
-                               final int bufferIndex,
-                               final byte[] tempBuffer)
+    private static void decode(
+        final MessageHeader messageHeader,
+        final Car car,
+        final DirectBuffer buffer,
+        final int bufferIndex,
+        final byte[] tempBuffer)
     {
         messageHeader.wrap(buffer, bufferIndex, 0);
 
@@ -232,11 +230,12 @@ public class CarBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(state.car.size() + state.messageHeader.size()));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(state.car.size() + state.messageHeader.size()));
     }
 
     private static void perfTestDecode(final int runNumber)
@@ -253,10 +252,11 @@ public class CarBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(state.car.size() + state.messageHeader.size()));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(state.car.size() + state.messageHeader.size()));
     }
 }

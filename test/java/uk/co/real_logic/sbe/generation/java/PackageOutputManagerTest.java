@@ -16,6 +16,7 @@
 package uk.co.real_logic.sbe.generation.java;
 
 import org.junit.Test;
+import uk.co.real_logic.agrona.generation.PackageOutputManager;
 
 import java.io.File;
 import java.io.Writer;
@@ -39,7 +40,8 @@ public class PackageOutputManagerTest
         Writer out = pom.createOutput(exampleClassName);
         out.close();
 
-        final String fullyQualifiedFilename = (tempDirName.endsWith("" + File.separatorChar) ? tempDirName : tempDirName + File.separatorChar) +
+        final String fullyQualifiedFilename =
+            (tempDirName.endsWith("" + File.separatorChar) ? tempDirName : tempDirName + File.separatorChar) +
             packageName.replace('.', File.separatorChar) +
             File.separatorChar + exampleClassName + ".java";
 

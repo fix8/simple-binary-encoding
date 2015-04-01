@@ -16,8 +16,6 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import uk.co.real_logic.sbe.SbeTool;
-
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -54,8 +52,9 @@ public class CompositeTypeTest
             "</composite>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
-        CompositeType decimal = (CompositeType)map.get("decimal");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
+        final CompositeType decimal = (CompositeType)map.get("decimal");
+
         assertThat(decimal.name(), is("decimal"));
         assertThat(decimal.getType("mantissa").primitiveType(), is(PrimitiveType.INT64));
         assertThat(decimal.getType("exponent").primitiveType(), is(PrimitiveType.INT8));
@@ -74,8 +73,9 @@ public class CompositeTypeTest
             "</composite>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
-        CompositeType decimal32 = (CompositeType)map.get("decimal32");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
+        final CompositeType decimal32 = (CompositeType)map.get("decimal32");
+
         assertThat(decimal32.name(), is("decimal32"));
         assertThat(decimal32.getType("mantissa").primitiveType(), is(PrimitiveType.INT32));
         assertThat(decimal32.getType("exponent").primitiveType(), is(PrimitiveType.INT8));
@@ -96,8 +96,9 @@ public class CompositeTypeTest
             "</composite>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
-        CompositeType decimal64 = (CompositeType)map.get("decimal64");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
+        final CompositeType decimal64 = (CompositeType)map.get("decimal64");
+
         assertThat(decimal64.name(), is("decimal64"));
         assertThat(decimal64.getType("mantissa").primitiveType(), is(PrimitiveType.INT64));
         assertThat(decimal64.getType("exponent").primitiveType(), is(PrimitiveType.INT8));
@@ -118,8 +119,9 @@ public class CompositeTypeTest
             "</composite>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
-        CompositeType c = (CompositeType)map.get("decimal");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
+        final CompositeType c = (CompositeType)map.get("decimal");
+
         assertThat(valueOf(c.getTypeList().size()), is(valueOf(2)));
         assertThat(c.getTypeList().get(0).name(), is("mantissa"));
         assertThat(c.getTypeList().get(1).name(), is("exponent"));
@@ -133,13 +135,15 @@ public class CompositeTypeTest
         final String testXmlString =
             "<types>" +
             "<composite name=\"PRICENULL\" description=\"Price NULL\" semanticType=\"Price\">" +
-            "    <type name=\"mantissa\" description=\"mantissa\" presence=\"optional\" nullValue=\"" + nullValStr + "\" primitiveType=\"int64\"/>" +
+            "    <type name=\"mantissa\" description=\"mantissa\" presence=\"optional\" nullValue=\"" +
+                nullValStr + "\" primitiveType=\"int64\"/>" +
             "    <type name=\"exponent\" description=\"exponent\" presence=\"constant\" primitiveType=\"int8\">-7</type>" +
             "</composite>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
-        CompositeType c = (CompositeType)map.get("PRICENULL");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/composite", testXmlString);
+        final CompositeType c = (CompositeType)map.get("PRICENULL");
+
         assertThat((c.getType("mantissa")).nullValue(), is(PrimitiveValue.parse(nullValStr, PrimitiveType.INT64)));
     }
 
@@ -162,14 +166,14 @@ public class CompositeTypeTest
     private static Map<String, Type> parseTestXmlWithMap(final String xPathExpr, final String xml)
         throws ParserConfigurationException, XPathExpressionException, IOException, SAXException
     {
-        Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes()));
-        XPath xPath = XPathFactory.newInstance().newXPath();
-        NodeList list = (NodeList)xPath.compile(xPathExpr).evaluate(document, XPathConstants.NODESET);
-        Map<String, Type> map = new HashMap<>();
+        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            new ByteArrayInputStream(xml.getBytes()));
+        final XPath xPath = XPathFactory.newInstance().newXPath();
+        final NodeList list = (NodeList)xPath.compile(xPathExpr).evaluate(document, XPathConstants.NODESET);
+        final Map<String, Type> map = new HashMap<>();
 
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "true");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        document.setUserData(XmlSchemaParser.ERROR_HANDLER_KEY, new ErrorHandler(), null);
+        final ParserOptions options = ParserOptions.builder().stopOnError(true).suppressOutput(true).build();
+        document.setUserData(XmlSchemaParser.ERROR_HANDLER_KEY, new ErrorHandler(options), null);
 
         for (int i = 0, size = list.getLength(); i < size; i++)
         {

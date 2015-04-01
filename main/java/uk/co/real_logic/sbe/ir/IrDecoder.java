@@ -15,13 +15,16 @@
  */
 package uk.co.real_logic.sbe.ir;
 
+import uk.co.real_logic.agrona.MutableDirectBuffer;
+import uk.co.real_logic.agrona.concurrent.UnsafeBuffer;
 import uk.co.real_logic.sbe.PrimitiveType;
-import uk.co.real_logic.sbe.codec.java.DirectBuffer;
 import uk.co.real_logic.sbe.ir.generated.FrameCodec;
-
 import uk.co.real_logic.sbe.ir.generated.TokenCodec;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -35,7 +38,7 @@ public class IrDecoder implements Closeable
     private static final int CAPACITY = 4096;
 
     private final FileChannel channel;
-    private final DirectBuffer directBuffer;
+    private final MutableDirectBuffer directBuffer;
     private final FrameCodec frameCodec = new FrameCodec();
     private final TokenCodec tokenCodec = new TokenCodec();
     private int offset;
@@ -47,7 +50,7 @@ public class IrDecoder implements Closeable
     private int irId;
     private int irVersion = 0;
     private final byte[] valArray = new byte[CAPACITY];
-    private final DirectBuffer valBuffer = new DirectBuffer(valArray);
+    private final MutableDirectBuffer valBuffer = new UnsafeBuffer(valArray);
     private final byte[] buffer = new byte[1024];
 
     public IrDecoder(final String fileName)
@@ -55,7 +58,7 @@ public class IrDecoder implements Closeable
     {
         channel = new RandomAccessFile(fileName, "r").getChannel();
         final MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-        directBuffer = new DirectBuffer(buffer);
+        directBuffer = new UnsafeBuffer(buffer);
         size = channel.size();
         offset = 0;
     }
@@ -64,7 +67,7 @@ public class IrDecoder implements Closeable
     {
         channel = null;
         size = buffer.limit();
-        directBuffer = new DirectBuffer(buffer);
+        directBuffer = new UnsafeBuffer(buffer);
         offset = 0;
     }
 
@@ -158,16 +161,18 @@ public class IrDecoder implements Closeable
 
         irVersion = frameCodec.schemaVersion();
 
-        irPackageName = new String(buffer, 0, frameCodec.getPackageName(buffer, 0, buffer.length), FrameCodec.packageNameCharacterEncoding());
+        irPackageName = new String(
+            buffer, 0, frameCodec.getPackageName(buffer, 0, buffer.length), FrameCodec.packageNameCharacterEncoding());
 
-        irNamespaceName = new String(buffer, 0, frameCodec.getNamespaceName(buffer, 0, buffer.length), FrameCodec.namespaceNameCharacterEncoding());
+        irNamespaceName = new String(
+            buffer, 0, frameCodec.getNamespaceName(buffer, 0, buffer.length), FrameCodec.namespaceNameCharacterEncoding());
         if (irNamespaceName.isEmpty())
         {
             irNamespaceName = null;
         }
 
-        semanticVersion =
-            new String(buffer, 0, frameCodec.getSemanticVersion(buffer, 0, buffer.length), FrameCodec.semanticVersionCharacterEncoding());
+        semanticVersion = new String(
+            buffer, 0, frameCodec.getSemanticVersion(buffer, 0, buffer.length), FrameCodec.semanticVersionCharacterEncoding());
         if (semanticVersion.isEmpty())
         {
             semanticVersion = null;
@@ -196,27 +201,29 @@ public class IrDecoder implements Closeable
                   .byteOrder(mapByteOrder(tokenCodec.byteOrder()))
                   .presence(mapPresence(tokenCodec.presence()));
 
-        tokenBuilder.name(new String(buffer, 0, tokenCodec.getName(buffer, 0, buffer.length), TokenCodec.nameCharacterEncoding()));
+        tokenBuilder.name(new String(
+            buffer, 0, tokenCodec.getName(buffer, 0, buffer.length), TokenCodec.nameCharacterEncoding()));
 
         encBuilder.constValue(get(valBuffer, type, tokenCodec.getConstValue(valArray, 0, valArray.length)));
         encBuilder.minValue(get(valBuffer, type, tokenCodec.getMinValue(valArray, 0, valArray.length)));
         encBuilder.maxValue(get(valBuffer, type, tokenCodec.getMaxValue(valArray, 0, valArray.length)));
         encBuilder.nullValue(get(valBuffer, type, tokenCodec.getNullValue(valArray, 0, valArray.length)));
 
-        final String characterEncoding = new String(buffer, 0, tokenCodec.getCharacterEncoding(buffer, 0, buffer.length),
-                                                    TokenCodec.characterEncodingCharacterEncoding());
+        final String characterEncoding = new String(
+            buffer, 0, tokenCodec.getCharacterEncoding(buffer, 0, buffer.length),
+            TokenCodec.characterEncodingCharacterEncoding());
         encBuilder.characterEncoding(characterEncoding.isEmpty() ? null : characterEncoding);
 
-        final String epoch = new String(buffer, 0, tokenCodec.getEpoch(buffer, 0, buffer.length),
-                                        TokenCodec.epochCharacterEncoding());
+        final String epoch = new String(
+            buffer, 0, tokenCodec.getEpoch(buffer, 0, buffer.length), TokenCodec.epochCharacterEncoding());
         encBuilder.epoch(epoch.isEmpty() ? null : epoch);
 
-        final String timeUnit = new String(buffer, 0, tokenCodec.getTimeUnit(buffer, 0, buffer.length),
-                                           TokenCodec.timeUnitCharacterEncoding());
+        final String timeUnit = new String(
+            buffer, 0, tokenCodec.getTimeUnit(buffer, 0, buffer.length), TokenCodec.timeUnitCharacterEncoding());
         encBuilder.timeUnit(timeUnit.isEmpty() ? null : timeUnit);
 
-        final String semanticType = new String(buffer, 0, tokenCodec.getSemanticType(buffer, 0, buffer.length),
-                                               TokenCodec.semanticTypeCharacterEncoding());
+        final String semanticType = new String(
+            buffer, 0, tokenCodec.getSemanticType(buffer, 0, buffer.length), TokenCodec.semanticTypeCharacterEncoding());
         encBuilder.semanticType(semanticType.isEmpty() ? null : semanticType);
 
         offset += tokenCodec.size();

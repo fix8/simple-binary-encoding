@@ -15,12 +15,17 @@
  */
 package uk.co.real_logic.sbe.generation;
 
+import uk.co.real_logic.agrona.concurrent.UnsafeBuffer;
+import uk.co.real_logic.agrona.generation.PackageOutputManager;
+import uk.co.real_logic.sbe.SbeTool;
 import uk.co.real_logic.sbe.generation.cpp98.Cpp98Generator;
+import uk.co.real_logic.sbe.generation.cpp98.NamespaceOutputManager;
 import uk.co.real_logic.sbe.generation.csharp.CSharpGenerator;
 import uk.co.real_logic.sbe.generation.csharp.CSharpNamespaceOutputManager;
-import uk.co.real_logic.sbe.generation.cpp98.NamespaceOutputManager;
 import uk.co.real_logic.sbe.generation.java.JavaGenerator;
-import uk.co.real_logic.sbe.generation.java.PackageOutputManager;
+import uk.co.real_logic.sbe.generation.java.JavaMockPojoGenerator;
+import uk.co.real_logic.sbe.generation.python.ModuleOutputManager;
+import uk.co.real_logic.sbe.generation.python.PythonGenerator;
 import uk.co.real_logic.sbe.ir.Ir;
 
 import java.io.IOException;
@@ -30,38 +35,59 @@ import java.io.IOException;
  */
 public enum TargetCodeGenerator
 {
-    JAVA()
-    {
-        public CodeGenerator newInstance(final Ir ir, final String outputDir)
-            throws IOException
+    JAVA_MOCK_POJO()
         {
-            return new JavaGenerator(ir, new PackageOutputManager(outputDir, ir.applicableNamespace()));
-        }
-    },
+            public CodeGenerator newInstance(final Ir ir, final String outputDir)
+                throws IOException
+            {
+                return new JavaMockPojoGenerator(ir, new PackageOutputManager(outputDir, ir.applicableNamespace()));
+            }
+        },
+
+    JAVA()
+        {
+            public CodeGenerator newInstance(final Ir ir, final String outputDir)
+                throws IOException
+            {
+                return new JavaGenerator(
+                    ir,
+                    System.getProperty(SbeTool.JAVA_BUFFER, UnsafeBuffer.class.getName()),
+                    new PackageOutputManager(outputDir, ir.applicableNamespace()));
+            }
+        },
+
+    PYTHON()
+        {
+            public CodeGenerator newInstance(final Ir ir, final String outputDir)
+                throws IOException
+            {
+                return new PythonGenerator(ir, new ModuleOutputManager(outputDir, ir.applicableNamespace()));
+            }
+        },
 
     CPP98()
-    {
-        public CodeGenerator newInstance(final Ir ir, final String outputDir)
-            throws IOException
         {
-            return new Cpp98Generator(ir, new NamespaceOutputManager(outputDir, ir.applicableNamespace()));
-        }
-    },
+            public CodeGenerator newInstance(final Ir ir, final String outputDir)
+                throws IOException
+            {
+                return new Cpp98Generator(ir, new NamespaceOutputManager(outputDir, ir.applicableNamespace()));
+            }
+        },
 
     CSHARP()
-    {
-        public CodeGenerator newInstance(final Ir ir, final String outputDir)
-                throws IOException
         {
-            return new CSharpGenerator(ir, new CSharpNamespaceOutputManager(outputDir, ir.applicableNamespace()));
-        }
-    };
+            public CodeGenerator newInstance(final Ir ir, final String outputDir)
+                throws IOException
+            {
+                return new CSharpGenerator(ir, new CSharpNamespaceOutputManager(outputDir, ir.applicableNamespace()));
+            }
+        };
 
 
     /**
      * Get a new {@link CodeGenerator} for the given target language.
      *
-     * @param ir describing the message schemas from which code should generated.
+     * @param ir        describing the message schemas from which code should generated.
      * @param outputDir to which the generated code with be written.
      * @return a new instance of a {@link CodeGenerator} for the given target language.
      * @throws IOException if an error occurs when dealing with the output directory.

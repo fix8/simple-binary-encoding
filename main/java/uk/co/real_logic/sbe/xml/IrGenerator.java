@@ -44,7 +44,8 @@ public class IrGenerator
      */
     public Ir generate(final MessageSchema schema, final String namespace)
     {
-        final Ir ir = new Ir(schema.packageName(), namespace, schema.id(), schema.version(), schema.semanticVersion(), generateForHeader(schema));
+        final Ir ir = new Ir(
+            schema.packageName(), namespace, schema.id(), schema.version(), schema.semanticVersion(), generateForHeader(schema));
 
         for (final Message message : schema.messages())
         {
@@ -58,7 +59,7 @@ public class IrGenerator
     /**
      * Generate a complete {@link uk.co.real_logic.sbe.ir.Ir} for a given schema.
      *
-     * @param schema    from which the {@link uk.co.real_logic.sbe.ir.Ir} should be generated.
+     * @param schema from which the {@link uk.co.real_logic.sbe.ir.Ir} should be generated.
      * @return complete {@link uk.co.real_logic.sbe.ir.Ir} for a given schema.
      */
     public Ir generate(final MessageSchema schema)
@@ -114,6 +115,7 @@ public class IrGenerator
             .size(field.computedBlockLength())
             .name(field.name())
             .id(field.id())
+            .offset(field.computedOffset())
             .version(field.sinceVersion())
             .encoding(new Encoding.Builder()
                 .epoch(field.epoch())
@@ -195,6 +197,11 @@ public class IrGenerator
         int offset = 0;
         for (final EncodedDataType edt : type.getTypeList())
         {
+            if (edt.offsetAttribute() != -1)
+            {
+                offset = edt.offsetAttribute();
+            }
+
             add(edt, offset, field);
             offset += edt.size();
         }
@@ -337,25 +344,24 @@ public class IrGenerator
         {
             case REQUIRED:
                 encodingBuilder.presence(Encoding.Presence.REQUIRED)
-                    .minValue(type.minValue())
-                    .maxValue(type.maxValue());
+                               .minValue(type.minValue())
+                               .maxValue(type.maxValue());
                 break;
 
             case OPTIONAL:
                 encodingBuilder.presence(Encoding.Presence.OPTIONAL)
-                    .minValue(type.minValue())
-                    .maxValue(type.maxValue())
-                    .nullValue(type.nullValue());
+                               .minValue(type.minValue())
+                               .maxValue(type.maxValue())
+                               .nullValue(type.nullValue());
                 break;
 
             case CONSTANT:
                 encodingBuilder.presence(Encoding.Presence.CONSTANT)
-                    .constValue(type.constVal());
+                               .constValue(type.constVal());
                 break;
         }
 
-        final Token token = tokenBuilder.encoding(encodingBuilder.build())
-            .build();
+        final Token token = tokenBuilder.encoding(encodingBuilder.build()).build();
 
         tokenList.add(token);
     }

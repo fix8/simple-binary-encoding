@@ -16,7 +16,7 @@
 
 package uk.co.real_logic.protobuf;
 
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import uk.co.real_logic.protobuf.examples.Examples;
@@ -47,13 +47,13 @@ public class CarBenchmark
         }
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public byte[] testEncode(final MyState state) throws Exception
     {
         return encode();
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public Examples.Car testDecode(final MyState state) throws Exception
     {
         final byte[] buffer = state.decodeBuffer;
@@ -182,11 +182,12 @@ public class CarBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(encodedBuffer.length));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testEncode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(encodedBuffer.length));
     }
 
     private static void perfTestDecode(final int runNumber) throws Exception
@@ -204,10 +205,11 @@ public class CarBenchmark
 
         final long totalDuration = System.nanoTime() - start;
 
-        System.out.printf("%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
-                          Integer.valueOf(runNumber),
-                          Long.valueOf(totalDuration / reps),
-                          benchmark.getClass().getName(),
-                          Integer.valueOf(car.getSomeNumbersCount()));
+        System.out.printf(
+            "%d - %d(ns) average duration for %s.testDecode() - message size %d\n",
+            Integer.valueOf(runNumber),
+            Long.valueOf(totalDuration / reps),
+            benchmark.getClass().getName(),
+            Integer.valueOf(car.getSomeNumbersCount()));
     }
 }

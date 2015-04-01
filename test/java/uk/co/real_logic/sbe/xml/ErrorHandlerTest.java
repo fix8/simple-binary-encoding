@@ -16,10 +16,11 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import uk.co.real_logic.sbe.SbeTool;
 import uk.co.real_logic.sbe.TestUtil;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -30,6 +31,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -42,6 +44,9 @@ import static uk.co.real_logic.sbe.xml.XmlSchemaParser.parse;
 
 public class ErrorHandlerTest
 {
+    @Rule
+    public final ExpectedException exceptionRule = ExpectedException.none();
+
     @Test
     public void shouldNotExitOnTypeErrorsAndWarnings()
         throws Exception
@@ -80,10 +85,8 @@ public class ErrorHandlerTest
             "</types>";
 
         final Map<String, Type> map = new HashMap<>();
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "false");
-        ErrorHandler handler = new ErrorHandler();
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).build();
+        final ErrorHandler handler = new ErrorHandler(options);
 
         parseTestXmlAddToMap(map, "/types/composite", testXmlString, handler);
         parseTestXmlAddToMap(map, "/types/type", testXmlString, handler);
@@ -94,104 +97,88 @@ public class ErrorHandlerTest
         assertThat(valueOf(handler.warningCount()), is(valueOf(5)));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldExitAfterTypes()
         throws Exception
     {
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "false");
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 2 errors");
 
-        try
-        {
-            parse(TestUtil.getLocalResource("error-handler-types-schema.xml"));
-        }
-        catch (final IllegalArgumentException shouldHaveOnly2Errors)
-        {
-            assertThat(shouldHaveOnly2Errors.getMessage(), is("had 2 errors"));
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).build();
 
-            throw shouldHaveOnly2Errors;
-        }
+        parse(TestUtil.getLocalResource("error-handler-types-schema.xml"), options);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldExitAfterTypesWhenDupTypesDefined()
         throws Exception
     {
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "true");
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 1 warnings");
 
-        try
-        {
-            parse(TestUtil.getLocalResource("error-handler-types-dup-schema.xml"));
-        }
-        catch (final IllegalArgumentException shouldHaveOnly1Warning)
-        {
-            assertThat(shouldHaveOnly1Warning.getMessage(), is("had 1 warnings"));
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
 
-            throw shouldHaveOnly1Warning;
-        }
+        parse(TestUtil.getLocalResource("error-handler-types-dup-schema.xml"), options);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldExitAfterMessageWhenDupMessageIdsDefined()
         throws Exception
     {
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "true");
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 1 errors");
 
-        try
-        {
-            parse(TestUtil.getLocalResource("error-handler-dup-message-schema.xml"));
-        }
-        catch (final IllegalArgumentException shouldHaveOnly1Error)
-        {
-            assertThat(shouldHaveOnly1Error.getMessage(), is("had 1 errors"));
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
 
-            throw shouldHaveOnly1Error;
-        }
+        parse(TestUtil.getLocalResource("error-handler-dup-message-schema.xml"), options);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldExitAfterMessage()
         throws Exception
     {
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "true");
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 11 errors");
 
-        try
-        {
-            parse(TestUtil.getLocalResource("error-handler-message-schema.xml"));
-        }
-        catch (final IllegalArgumentException shouldHaveOnly12Errors)
-        {
-            assertThat(shouldHaveOnly12Errors.getMessage(), is("had 12 errors"));
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
 
-            throw shouldHaveOnly12Errors;
-        }
+        parse(TestUtil.getLocalResource("error-handler-message-schema.xml"), options);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldExitAfterMessageWhenGroupDimensionsNotComposite()
         throws Exception
     {
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "false");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "true");
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 1 errors");
 
-        try
-        {
-            parse(TestUtil.getLocalResource("error-handler-group-dimensions-schema.xml"));
-        }
-        catch (final IllegalArgumentException shouldHaveOnly1Error)
-        {
-            assertThat(shouldHaveOnly1Error.getMessage(), is("had 1 errors"));
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
 
-            throw shouldHaveOnly1Error;
-        }
+        parse(TestUtil.getLocalResource("error-handler-group-dimensions-schema.xml"), options);
+    }
+
+    @Test
+    public void shouldExitAfterTypesWhenCompositeOffsetsIncorrect()
+        throws Exception
+    {
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 2 errors");
+
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
+
+        parse(TestUtil.getLocalResource("error-handler-invalid-composite-offsets-schema.xml"), options);
+    }
+
+    @Test
+    public void shouldExitInvalidFieldNames()
+        throws Exception
+    {
+        exceptionRule.expect(IllegalStateException.class);
+        exceptionRule.expectMessage("had 8 errors");
+
+        final ParserOptions options = ParserOptions.builder().suppressOutput(true).warningsFatal(true).build();
+
+        parse(TestUtil.getLocalResource("error-handler-invalid-name.xml"), options);
     }
 
     /*
@@ -200,13 +187,12 @@ public class ErrorHandlerTest
      * dup field id? (not currently tracked)
      */
 
-    private static void parseTestXmlAddToMap(final Map<String, Type> map,
-                                             final String xPathExpr,
-                                             final String xml,
-                                             final ErrorHandler handler)
+    private static void parseTestXmlAddToMap(
+        final Map<String, Type> map, final String xPathExpr, final String xml, final ErrorHandler handler)
         throws ParserConfigurationException, XPathExpressionException, IOException, SAXException
     {
-        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes()));
+        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            new ByteArrayInputStream(xml.getBytes()));
         final XPath xPath = XPathFactory.newInstance().newXPath();
         final NodeList list = (NodeList)xPath.compile(xPathExpr).evaluate(document, XPathConstants.NODESET);
 

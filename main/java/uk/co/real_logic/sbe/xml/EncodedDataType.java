@@ -40,6 +40,7 @@ public class EncodedDataType extends Type
     private final PrimitiveValue nullValue;
     private final String characterEncoding;
     private final int sinceVersion;
+    private final int offsetAttribute;
     private boolean varLen;
 
     /**
@@ -56,6 +57,7 @@ public class EncodedDataType extends Type
         varLen = Boolean.parseBoolean(getAttributeValue(node, "variableLength", "false"));
         characterEncoding = getAttributeValue(node, "characterEncoding", "UTF-8");
         sinceVersion = Integer.parseInt(getAttributeValue(node, "sinceVersion", "0"));
+        offsetAttribute = Integer.parseInt(getAttributeValue(node, "offset", "-1"));
 
         if (presence() == Presence.CONSTANT)
         {
@@ -90,7 +92,7 @@ public class EncodedDataType extends Type
         }
 
         final String minValStr = getAttributeValueOrNull(node, "minValue");
-        minValue =  minValStr != null ? PrimitiveValue.parse(minValStr, primitiveType) : null;
+        minValue = minValStr != null ? PrimitiveValue.parse(minValStr, primitiveType) : null;
 
         final String maxValStr = getAttributeValueOrNull(node, "maxValue");
         maxValue = maxValStr != null ? PrimitiveValue.parse(maxValStr, primitiveType) : null;
@@ -122,13 +124,14 @@ public class EncodedDataType extends Type
      * @param length        of the EncodedDataType
      * @param varLen        of the EncodedDataType
      */
-    public EncodedDataType(final String name,
-                           final Presence presence,
-                           final String description,
-                           final String semanticType,
-                           final PrimitiveType primitiveType,
-                           final int length,
-                           final boolean varLen)
+    public EncodedDataType(
+        final String name,
+        final Presence presence,
+        final String description,
+        final String semanticType,
+        final PrimitiveType primitiveType,
+        final int length,
+        final boolean varLen)
     {
         super(name, presence, description, semanticType);
 
@@ -141,6 +144,7 @@ public class EncodedDataType extends Type
         this.nullValue = null;
         characterEncoding = null;
         sinceVersion = 0;
+        offsetAttribute = -1;
     }
 
     /**
@@ -262,5 +266,15 @@ public class EncodedDataType extends Type
     public int sinceVersion()
     {
         return sinceVersion;
+    }
+
+    /**
+     * Return the offset attribute of the {@link EncodedDataType} from the schema
+     *
+     * @return the offset attribute value or -1 to indicate not set by the schema
+     */
+    public int offsetAttribute()
+    {
+        return offsetAttribute;
     }
 }

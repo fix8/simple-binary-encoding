@@ -16,8 +16,6 @@
  */
 package uk.co.real_logic.sbe.xml;
 
-import uk.co.real_logic.sbe.SbeTool;
-
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -151,6 +149,7 @@ public class EnumTypeTest
             }
             count++;
         }
+
         assertThat(valueOf(count), is(valueOf(3)));
         assertThat(valueOf(foundOn), is(valueOf(1)));
         assertThat(valueOf(foundOff), is(valueOf(1)));
@@ -171,8 +170,9 @@ public class EnumTypeTest
             "</enum>" +
             "</types>";
 
-        Map<String, Type> map = parseTestXmlWithMap("/types/enum", testXmlString);
-        EnumType e = (EnumType)map.get("mixed");
+        final Map<String, Type> map = parseTestXmlWithMap("/types/enum", testXmlString);
+        final EnumType e = (EnumType)map.get("mixed");
+
         assertThat(e.encodingType(), is(PrimitiveType.CHAR));
         assertThat(e.getValidValue("Cee").primitiveValue(), is(PrimitiveValue.parse("C", PrimitiveType.CHAR)));
         assertThat(e.getValidValue("One").primitiveValue(), is(PrimitiveValue.parse("1", PrimitiveType.CHAR)));
@@ -231,27 +231,31 @@ public class EnumTypeTest
     public void shouldHandleEncodingTypesWithNamedTypes()
         throws Exception
     {
-        MessageSchema schema = parse(TestUtil.getLocalResource("encoding-types-schema.xml"));
-        List<Field> fields = schema.getMessage(1).fields();
+        final MessageSchema schema = parse(TestUtil.getLocalResource("encoding-types-schema.xml"), ParserOptions.DEFAULT);
+        final List<Field> fields = schema.getMessage(1).fields();
+
         assertNotNull(fields);
+
         EnumType type = (EnumType)fields.get(1).type();
+
         assertThat(type.encodingType(), is(PrimitiveType.CHAR));
+
         type = (EnumType)fields.get(2).type();
+
         assertThat(type.encodingType(), is(PrimitiveType.UINT8));
     }
 
     private static Map<String, Type> parseTestXmlWithMap(final String xPathExpr, final String xml)
         throws ParserConfigurationException, XPathExpressionException, IOException, SAXException
     {
-        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes()));
+        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            new ByteArrayInputStream(xml.getBytes()));
         final XPath xPath = XPathFactory.newInstance().newXPath();
         final NodeList list = (NodeList)xPath.compile(xPathExpr).evaluate(document, XPathConstants.NODESET);
         final Map<String, Type> map = new HashMap<>();
 
-        System.setProperty(SbeTool.VALIDATION_STOP_ON_ERROR, "true");
-        System.setProperty(SbeTool.VALIDATION_SUPPRESS_OUTPUT, "true");
-        System.setProperty(SbeTool.VALIDATION_WARNINGS_FATAL, "true");
-        document.setUserData(XmlSchemaParser.ERROR_HANDLER_KEY, new ErrorHandler(), null);
+        final ParserOptions options = ParserOptions.builder().stopOnError(true).suppressOutput(true).warningsFatal(true).build();
+        document.setUserData(XmlSchemaParser.ERROR_HANDLER_KEY, new ErrorHandler(options), null);
 
         for (int i = 0, size = list.getLength(); i < size; i++)
         {
